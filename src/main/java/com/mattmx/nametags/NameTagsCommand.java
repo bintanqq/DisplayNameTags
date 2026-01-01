@@ -26,56 +26,156 @@ public class NameTagsCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        // SHUT UP EVA
-
         if (args.length == 0) {
-            return false;
+            sendHelp(sender);
+            return true;
         }
 
-        if (args[0].equalsIgnoreCase("reload")) {
-            reload();
-            sender.sendMessage(Component.text("Reloaded!").color(NamedTextColor.GREEN));
-        } else if (args[0].equalsIgnoreCase("debug")) {
-            sender.sendMessage(
-                    Component.text("NameTags debug")
-                            .appendNewline()
-                            .append(
-                                    Component.text("Total NameTags: " + plugin.getEntityManager().getCacheSize())
-                                            .hoverEvent(HoverEvent.showText(
-                                                    Component.text("By Entity UUID: " + plugin.getEntityManager().getCacheSize())
-                                                            .appendNewline()
-                                                            .append(Component.text("By Entity ID: " + plugin.getEntityManager().getEntityIdMapSize()))
-                                                            .appendNewline()
-                                                            .append(Component.text("By Passenger ID: " + plugin.getEntityManager().getPassengerIdMapSize()))
-                                            ))
-                                            .color(NamedTextColor.WHITE)
-                            )
-                            .appendNewline()
-                            .append(
-                                    Component.text("Cached last sent passengers: " + plugin.getEntityManager().getLastSentPassengersSize())
-                                            .color(NamedTextColor.WHITE)
-                            )
-                            .appendNewline()
-                            .append(
-                                    Component.text("Viewers:")
-                                            .appendNewline()
-                                            .append(
-                                                    Component.text(
-                                                            String.join("\n",
-                                                                    plugin.getEntityManager()
-                                                                            .getAllEntities()
-                                                                            .stream()
-                                                                            .map((nameTag) -> " - " + nameTag.getBukkitEntity().getUniqueId() + ": " + nameTag.getPassenger().getViewers())
-                                                                            .toList()
-                                                            )
-                                                    )
-                                            )
-                            )
-                            .color(NamedTextColor.GOLD)
-            );
+        switch (args[0].toLowerCase()) {
+            case "reload" -> {
+                if (!sender.hasPermission("nametags.command.reload")) {
+                    sender.sendMessage(Component.text("You don't have permission to use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                reload();
+                sender.sendMessage(Component.text("Reloaded!").color(NamedTextColor.GREEN));
+            }
+            case "debug" -> {
+                if (!sender.hasPermission("nametags.command.debug")) {
+                    sender.sendMessage(Component.text("You don't have permission to use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                sendDebugInfo(sender);
+            }
+            case "hide" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(Component.text("Only players can use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                if (!sender.hasPermission("nametags.command.hide")) {
+                    sender.sendMessage(Component.text("You don't have permission to use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                hideNameTag(player);
+            }
+            case "show" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(Component.text("Only players can use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                if (!sender.hasPermission("nametags.command.show")) {
+                    sender.sendMessage(Component.text("You don't have permission to use this command!")
+                        .color(NamedTextColor.RED));
+                    return true;
+                }
+                showNameTag(player);
+            }
+            default -> sendHelp(sender);
         }
 
-        return false;
+        return true;
+    }
+
+    private void sendHelp(@NotNull CommandSender sender) {
+        sender.sendMessage(
+            Component.text("=== NameTags Commands ===").color(NamedTextColor.GOLD)
+                .appendNewline()
+                .append(Component.text("/nametags reload").color(NamedTextColor.YELLOW))
+                .append(Component.text(" - Reload the configuration").color(NamedTextColor.GRAY))
+                .appendNewline()
+                .append(Component.text("/nametags debug").color(NamedTextColor.YELLOW))
+                .append(Component.text(" - Show debug information").color(NamedTextColor.GRAY))
+                .appendNewline()
+                .append(Component.text("/nametags hide").color(NamedTextColor.YELLOW))
+                .append(Component.text(" - Hide your nametag").color(NamedTextColor.GRAY))
+                .appendNewline()
+                .append(Component.text("/nametags show").color(NamedTextColor.YELLOW))
+                .append(Component.text(" - Show your nametag").color(NamedTextColor.GRAY))
+        );
+    }
+
+    private void hideNameTag(@NotNull Player player) {
+        if (plugin.getVisibilityManager().isHidden(player)) {
+            player.sendMessage(Component.text("Your nametag is already hidden!")
+                .color(NamedTextColor.YELLOW));
+            return;
+        }
+
+        plugin.getVisibilityManager().setHidden(player, true);
+
+        NameTagEntity entity = plugin.getEntityManager().getNameTagEntity(player);
+        if (entity != null) {
+            // Remove all viewers
+            for (UUID viewerId : entity.getPassenger().getViewers().toArray(new UUID[0])) {
+                entity.getPassenger().removeViewer(viewerId);
+            }
+        }
+
+        player.sendMessage(Component.text("Your nametag has been hidden!")
+            .color(NamedTextColor.GREEN));
+    }
+
+    private void showNameTag(@NotNull Player player) {
+        if (!plugin.getVisibilityManager().isHidden(player)) {
+            player.sendMessage(Component.text("Your nametag is already visible!")
+                .color(NamedTextColor.YELLOW));
+            return;
+        }
+
+        plugin.getVisibilityManager().setHidden(player, false);
+
+        NameTagEntity entity = plugin.getEntityManager().getNameTagEntity(player);
+        if (entity != null) {
+            entity.updateVisibility();
+        }
+
+        player.sendMessage(Component.text("Your nametag is now visible!")
+            .color(NamedTextColor.GREEN));
+    }
+
+    private void sendDebugInfo(@NotNull CommandSender sender) {
+        sender.sendMessage(
+            Component.text("NameTags debug")
+                .appendNewline()
+                .append(
+                    Component.text("Total NameTags: " + plugin.getEntityManager().getCacheSize())
+                        .hoverEvent(HoverEvent.showText(
+                            Component.text("By Entity UUID: " + plugin.getEntityManager().getCacheSize())
+                                .appendNewline()
+                                .append(Component.text("By Entity ID: " + plugin.getEntityManager().getEntityIdMapSize()))
+                                .appendNewline()
+                                .append(Component.text("By Passenger ID: " + plugin.getEntityManager().getPassengerIdMapSize()))
+                        ))
+                        .color(NamedTextColor.WHITE)
+                )
+                .appendNewline()
+                .append(
+                    Component.text("Cached last sent passengers: " + plugin.getEntityManager().getLastSentPassengersSize())
+                        .color(NamedTextColor.WHITE)
+                )
+                .appendNewline()
+                .append(
+                    Component.text("Viewers:")
+                        .appendNewline()
+                        .append(
+                            Component.text(
+                                String.join("\n",
+                                    plugin.getEntityManager()
+                                        .getAllEntities()
+                                        .stream()
+                                        .map((nameTag) -> " - " + nameTag.getBukkitEntity().getUniqueId() + ": " + nameTag.getPassenger().getViewers())
+                                        .toList()
+                                )
+                            )
+                        )
+                )
+                .color(NamedTextColor.GOLD)
+        );
     }
 
     private void reload() {
@@ -111,16 +211,19 @@ public class NameTagsCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            newTag.updateVisibility();
+            // Check if player has hidden their nametag
+            if (!plugin.getVisibilityManager().isHidden(player)) {
+                newTag.updateVisibility();
+            }
         }
     }
-
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String @NotNull [] args) {
         String lastArg = args.length >= 1 ? args[0].toLowerCase() : "";
-        return Stream.of("reload", "debug")
-                .filter((arg) -> arg.toLowerCase().startsWith(lastArg))
-                .toList();
+        return Stream.of("reload", "debug", "hide", "show")
+            .filter((arg) -> sender.hasPermission("nametags.command." + arg))
+            .filter((arg) -> arg.toLowerCase().startsWith(lastArg))
+            .toList();
     }
 }

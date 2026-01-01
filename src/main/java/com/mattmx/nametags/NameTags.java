@@ -8,6 +8,7 @@ import com.mattmx.nametags.config.TextFormatter;
 import com.mattmx.nametags.entity.NameTagEntityManager;
 import com.mattmx.nametags.hook.NeznamyTABHook;
 import com.mattmx.nametags.hook.SkinRestorerHook;
+import com.mattmx.nametags.entity.NameTagVisibilityManager;
 import com.mattmx.nametags.utils.test.TestPlaceholderExpansion;
 import me.tofaa.entitylib.APIConfig;
 import me.tofaa.entitylib.EntityLib;
@@ -37,6 +38,7 @@ public class NameTags extends JavaPlugin {
     private @Nullable Executor executor = null;
     private @NotNull TextFormatter formatter = TextFormatter.MINI_MESSAGE;
     private NameTagEntityManager entityManager;
+    private NameTagVisibilityManager visibilityManager;
     private EventsListener eventsListener;
     private OutgoingPacketListener packetListener;
     private Metrics metrics;
@@ -51,6 +53,7 @@ public class NameTags extends JavaPlugin {
         instance = this;
 
         entityManager = new NameTagEntityManager();
+        visibilityManager = new NameTagVisibilityManager(this);
         eventsListener = new EventsListener(this);
         packetListener = new OutgoingPacketListener(this);
 
@@ -75,7 +78,6 @@ public class NameTags extends JavaPlugin {
         final PacketEventsAPI<?> packetEvents = PacketEvents.getAPI();
 
         packetEvents.getEventManager().registerListener(packetListener);
-//        packetEvents.getEventManager().registerListener(new GlowingEffectHook());
 
         NeznamyTABHook.inject(this);
         SkinRestorerHook.inject(this);
@@ -88,6 +90,8 @@ public class NameTags extends JavaPlugin {
         if (false) {
             new TestPlaceholderExpansion().register();
         }
+
+        getLogger().info("NameTags has been enabled!");
     }
 
     @Override
@@ -139,6 +143,10 @@ public class NameTags extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (visibilityManager != null) {
+            visibilityManager.saveData();
+        }
+
         metrics.shutdown();
 
         HandlerList.unregisterAll(this.eventsListener);
@@ -146,6 +154,8 @@ public class NameTags extends JavaPlugin {
         PacketEvents.getAPI()
             .getEventManager()
             .unregisterListener(this.packetListener);
+
+        getLogger().info("NameTags has been disabled!");
     }
 
     public Executor getExecutor() {
@@ -158,6 +168,10 @@ public class NameTags extends JavaPlugin {
 
     public @NotNull NameTagEntityManager getEntityManager() {
         return this.entityManager;
+    }
+
+    public @NotNull NameTagVisibilityManager getVisibilityManager() {
+        return this.visibilityManager;
     }
 
     public HashMap<String, ConfigurationSection> getGroups() {

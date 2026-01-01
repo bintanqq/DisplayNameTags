@@ -17,5 +17,36 @@ libraries:
 
 commands:
   nametags:
-    description: Reload and debug commands
-    permission: nametags.command.admin
+    description: NameTags commands
+    permission: nametags.command
+    usage: |
+      /<command> reload - Reload configuration
+      /<command> debug - Show debug information
+      /<command> hide - Hide your nametag
+      /<command> show - Show your nametag
+
+permissions:
+  nametags.command:
+    description: Access to NameTags commands
+    default: true
+    children:
+      nametags.command.hide: true
+      nametags.command.show: true
+  nametags.command.admin:
+    description: Access to admin commands
+    default: op
+    children:
+      nametags.command.reload: true
+      nametags.command.debug: true
+  nametags.command.reload:
+    description: Reload the plugin configuration
+    default: op
+  nametags.command.debug:
+    description: View debug information
+    default: op
+  nametags.command.hide:
+    description: Hide your nametag
+    default: true
+  nametags.command.show:
+    description: Show your nametag
+    default: true

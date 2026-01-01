@@ -9,7 +9,7 @@ packetevents = "2.8.0"
 tab = "5.2.0"
 skinsrestorer = "15.6.4"
 caffeine = "3.2.0"
-entitylib = "+1f4aeef-SNAPSHOT"
+entitylib = "3.0.3-SNAPSHOT"
 bstats = "3.1.0"
 
 junit-jupiter = "5.13.0"

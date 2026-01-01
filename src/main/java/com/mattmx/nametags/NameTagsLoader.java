@@ -25,26 +25,27 @@ public class NameTagsLoader implements PluginLoader {
             .resolve(".override")
             .toFile();
 
-        String entityLibVersion = "+1f4aeef-SNAPSHOT";
+        // EntityLib is published to Maven Central with groupId io.github.tofaa2
+        String entityLibVersion = "3.0.3-SNAPSHOT";
         if (override.exists()) {
             try (BufferedReader reader = new BufferedReader(new FileReader(override))) {
-                entityLibVersion = reader.readLine();
+                String line = reader.readLine();
+                if (line != null && !line.trim().isEmpty()) {
+                    entityLibVersion = line.trim();
+                }
             } catch (Exception error) {
-                error.printStackTrace();
+                classpathBuilder.getContext().getLogger().warn("Failed to read .override file: " + error.getMessage());
             }
         }
 
         MavenLibraryResolver resolver = new MavenLibraryResolver();
-        resolver.addRepository(
-            new RemoteRepository.Builder(
-                "evoke-games",
-                "default",
-                "https://maven.evokegames.gg/snapshots"
-            ).build()
-        );
+
+        // EntityLib is available on Maven Central
+        // No need to add custom repositories as mavenCentral() is included by default
+
         resolver.addDependency(
             new Dependency(
-                new DefaultArtifact("me.tofaa.entitylib:spigot:" + entityLibVersion),
+                new DefaultArtifact("io.github.tofaa2:spigot:" + entityLibVersion),
                 null
             ).setOptional(false)
         );

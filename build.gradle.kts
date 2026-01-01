@@ -13,6 +13,8 @@ val id = findProperty("id").toString()
 val pluginName = findProperty("plugin_name")
 
 repositories {
+    mavenCentral()
+    maven("https://maven.pvphub.me/tofaa")
     maven("https://maven.pvphub.me/releases")
     maven("https://repo.viaversion.com")
     maven("https://repo.codemc.org/repository/maven-public/") {
@@ -22,10 +24,8 @@ repositories {
     maven("https://repo.dmulloy2.net/repository/public/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://repo.codemc.io/repository/maven-releases/")
-    maven("https://maven.evokegames.gg/snapshots")
 
     mavenLocal()
-    mavenCentral()
     // Always make sure to put JitPack at the end of the list for performance reasons
     maven("https://jitpack.io")
 }
@@ -42,7 +42,7 @@ dependencies {
     compileOnly(libs.caffeine)
 
     // Shaded
-    implementation(libs.entitylib)
+    implementation("io.github.tofaa2:spigot:3.0.3-SNAPSHOT")
     implementation(libs.bstats)
 
     testImplementation(libs.junit.jupiter)
