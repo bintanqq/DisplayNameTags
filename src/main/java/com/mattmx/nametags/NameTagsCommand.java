@@ -129,13 +129,32 @@ public class NameTagsCommand implements CommandExecutor, TabCompleter {
 
         plugin.getVisibilityManager().setHidden(player, false);
 
-        NameTagEntity entity = plugin.getEntityManager().getNameTagEntity(player);
-        if (entity != null) {
-            entity.updateVisibility();
-        }
+        // Run async to avoid blocking the main thread
+        Bukkit.getAsyncScheduler().runNow(plugin, (task) -> {
+            NameTagEntity entity = plugin.getEntityManager().getNameTagEntity(player);
 
-        player.sendMessage(Component.text("Your nametag is now visible!")
-            .color(NamedTextColor.GREEN));
+            if (entity == null) {
+                // Create the entity if it doesn't exist
+                entity = plugin.getEntityManager().getOrCreateNameTagEntity(player);
+            }
+
+            // Add all online players as viewers
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                if (!onlinePlayer.equals(player) || plugin.getConfig().getBoolean("show-self", false)) {
+                    entity.getPassenger().addViewer(onlinePlayer.getUniqueId());
+                    entity.sendPassengerPacket(onlinePlayer);
+                }
+            }
+
+            // Update visibility to handle any edge cases
+            entity.updateVisibility();
+
+            // Send success message on main thread
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.sendMessage(Component.text("Your nametag is now visible!")
+                    .color(NamedTextColor.GREEN));
+            });
+        });
     }
 
     private void sendDebugInfo(@NotNull CommandSender sender) {
@@ -196,6 +215,11 @@ public class NameTagsCommand implements CommandExecutor, TabCompleter {
                 tag.destroy();
             }
 
+            // Skip creating nametag if player has it hidden
+            if (plugin.getVisibilityManager().isHidden(player)) {
+                continue;
+            }
+
             final NameTagEntity newTag = plugin.getEntityManager().getOrCreateNameTagEntity(player);
 
             // Add existing viewers
@@ -211,10 +235,7 @@ public class NameTagsCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            // Check if player has hidden their nametag
-            if (!plugin.getVisibilityManager().isHidden(player)) {
-                newTag.updateVisibility();
-            }
+            newTag.updateVisibility();
         }
     }
 

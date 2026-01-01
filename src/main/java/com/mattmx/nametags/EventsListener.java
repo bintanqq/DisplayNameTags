@@ -32,9 +32,10 @@ public class EventsListener implements Listener {
                 return;
             }
 
-            plugin.getEntityManager()
-                .getOrCreateNameTagEntity(event.getPlayer())
-                .updateVisibility();
+            NameTagEntity entity = plugin.getEntityManager()
+                .getOrCreateNameTagEntity(event.getPlayer());
+
+            entity.updateVisibility();
         });
     }
 
@@ -76,6 +77,11 @@ public class EventsListener implements Listener {
 
     @EventHandler
     public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
+        // Don't process if nametag is hidden
+        if (plugin.getVisibilityManager().isHidden(event.getPlayer())) {
+            return;
+        }
+
         NameTagEntity nameTagEntity = plugin.getEntityManager()
             .getNameTagEntity(event.getPlayer());
 
